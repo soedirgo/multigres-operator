@@ -60,6 +60,15 @@ const (
 	// PostgresConfigFilePath is the full path to the postgresql.conf template file
 	PostgresConfigFilePath = PostgresConfigMountPath + "/postgresql.conf.tmpl"
 
+	// PostgresExtraConfVolumeName is the name of the volume for extra postgresql.conf overrides
+	PostgresExtraConfVolumeName = "postgres-extra-conf"
+
+	// PostgresExtraConfMountPath is where the extra postgresql.conf is mounted
+	PostgresExtraConfMountPath = "/etc/pgctld/extra-conf"
+
+	// PostgresExtraConfFilePath is the full path to the extra conf file
+	PostgresExtraConfFilePath = PostgresExtraConfMountPath + "/postgresql.conf"
+
 	// PostgresPasswordSecretKey is the key within the Secret that holds the password
 	PostgresPasswordSecretKey = "password"
 
@@ -171,6 +180,12 @@ func buildPgctldContainer(
 			Value: string(shard.Spec.InitdbArgs),
 		})
 	}
+	if shard.Spec.PostgresExtraConfRef != nil {
+		env = append(env, corev1.EnvVar{
+			Name:  "POSTGRES_INITDB_EXTRA_CONF",
+			Value: PostgresExtraConfFilePath,
+		})
+	}
 	env = append(env, s3EnvVars(shard.Spec.Backup)...)
 	if otelVars := multigresv1alpha1.BuildOTELEnvVars(shard.Spec.Observability); len(otelVars) > 0 {
 		env = append(env, otelVars...)
@@ -199,6 +214,13 @@ func buildPgctldContainer(
 		volumeMounts = append(volumeMounts, corev1.VolumeMount{
 			Name:      PostgresConfigVolumeName,
 			MountPath: PostgresConfigMountPath,
+			ReadOnly:  true,
+		})
+	}
+	if shard.Spec.PostgresExtraConfRef != nil {
+		volumeMounts = append(volumeMounts, corev1.VolumeMount{
+			Name:      PostgresExtraConfVolumeName,
+			MountPath: PostgresExtraConfMountPath,
 			ReadOnly:  true,
 		})
 	}
@@ -520,6 +542,22 @@ func buildPostgresConfigVolume(ref *multigresv1alpha1.PostgresConfigRef) corev1.
 	}
 }
 
+func buildPostgresExtraConfVolume(ref *multigresv1alpha1.PostgresExtraConfRef) corev1.Volume {
+	return corev1.Volume{
+		Name: PostgresExtraConfVolumeName,
+		VolumeSource: corev1.VolumeSource{
+			ConfigMap: &corev1.ConfigMapVolumeSource{
+				LocalObjectReference: corev1.LocalObjectReference{
+					Name: ref.Name,
+				},
+				Items: []corev1.KeyToPath{
+					{Key: ref.Key, Path: "postgresql.conf"},
+				},
+			},
+		},
+	}
+}
+
 func buildPoolVolumes(shard *multigresv1alpha1.Shard, cellName string) []corev1.Volume {
 	volumes := []corev1.Volume{
 		buildSharedBackupVolume(shard, cellName),
@@ -528,6 +566,9 @@ func buildPoolVolumes(shard *multigresv1alpha1.Shard, cellName string) []corev1.
 	}
 	if shard.Spec.PostgresConfigRef != nil {
 		volumes = append(volumes, buildPostgresConfigVolume(shard.Spec.PostgresConfigRef))
+	}
+	if shard.Spec.PostgresExtraConfRef != nil {
+		volumes = append(volumes, buildPostgresExtraConfVolume(shard.Spec.PostgresExtraConfRef))
 	}
 	if certVol := buildPgBackRestCertVolume(shard); certVol != nil {
 		volumes = append(volumes, *certVol)

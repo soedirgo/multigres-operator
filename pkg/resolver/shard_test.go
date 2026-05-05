@@ -207,7 +207,7 @@ func TestResolver_ResolveShard(t *testing.T) {
 			c := fake.NewClientBuilder().WithScheme(scheme).WithObjects(tc.objects...).Build()
 			r := NewResolver(c, ns)
 
-			orch, pools, pvcPolicy, _, _, _, err := r.ResolveShard(
+			orch, pools, pvcPolicy, _, _, _, _, err := r.ResolveShard(
 				t.Context(),
 				tc.config,
 				tc.allCellNames,
@@ -749,7 +749,13 @@ func TestMergeShardConfig(t *testing.T) {
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
-			orch, pools, _, _, _, _ := mergeShardConfig(tc.tpl, tc.overrides, tc.inline, nil, nil)
+			orch, pools, _, _, _, _, _ := mergeShardConfig(
+				tc.tpl,
+				tc.overrides,
+				tc.inline,
+				nil,
+				nil,
+			)
 
 			if diff := cmp.Diff(
 				tc.wantOrch,
@@ -775,7 +781,7 @@ func TestMergeShardConfig_InitdbArgs(t *testing.T) {
 
 	t.Run("template sets InitdbArgs", func(t *testing.T) {
 		t.Parallel()
-		_, _, _, _, initdbArgs, _ := mergeShardConfig(
+		_, _, _, _, initdbArgs, _, _ := mergeShardConfig(
 			&multigresv1alpha1.ShardTemplate{
 				Spec: multigresv1alpha1.ShardTemplateSpec{
 					InitdbArgs: "--locale-provider=icu",
@@ -790,7 +796,7 @@ func TestMergeShardConfig_InitdbArgs(t *testing.T) {
 
 	t.Run("overrides override template", func(t *testing.T) {
 		t.Parallel()
-		_, _, _, _, initdbArgs, _ := mergeShardConfig(
+		_, _, _, _, initdbArgs, _, _ := mergeShardConfig(
 			&multigresv1alpha1.ShardTemplate{
 				Spec: multigresv1alpha1.ShardTemplateSpec{
 					InitdbArgs: "--locale-provider=icu",
@@ -808,7 +814,7 @@ func TestMergeShardConfig_InitdbArgs(t *testing.T) {
 
 	t.Run("inline overrides template", func(t *testing.T) {
 		t.Parallel()
-		_, _, _, _, initdbArgs, _ := mergeShardConfig(
+		_, _, _, _, initdbArgs, _, _ := mergeShardConfig(
 			&multigresv1alpha1.ShardTemplate{
 				Spec: multigresv1alpha1.ShardTemplateSpec{
 					InitdbArgs: "--locale-provider=icu",
@@ -827,7 +833,7 @@ func TestMergeShardConfig_InitdbArgs(t *testing.T) {
 
 	t.Run("inline overrides both template and overrides", func(t *testing.T) {
 		t.Parallel()
-		_, _, _, _, initdbArgs, _ := mergeShardConfig(
+		_, _, _, _, initdbArgs, _, _ := mergeShardConfig(
 			&multigresv1alpha1.ShardTemplate{
 				Spec: multigresv1alpha1.ShardTemplateSpec{
 					InitdbArgs: "--locale-provider=icu",
@@ -848,7 +854,7 @@ func TestMergeShardConfig_InitdbArgs(t *testing.T) {
 
 	t.Run("no InitdbArgs anywhere", func(t *testing.T) {
 		t.Parallel()
-		_, _, _, _, initdbArgs, _ := mergeShardConfig(
+		_, _, _, _, initdbArgs, _, _ := mergeShardConfig(
 			&multigresv1alpha1.ShardTemplate{},
 			nil, nil, nil, nil,
 		)
@@ -859,7 +865,7 @@ func TestMergeShardConfig_InitdbArgs(t *testing.T) {
 
 	t.Run("empty override does not clear template value", func(t *testing.T) {
 		t.Parallel()
-		_, _, _, _, initdbArgs, _ := mergeShardConfig(
+		_, _, _, _, initdbArgs, _, _ := mergeShardConfig(
 			&multigresv1alpha1.ShardTemplate{
 				Spec: multigresv1alpha1.ShardTemplateSpec{
 					InitdbArgs: "--locale-provider=icu",
@@ -918,7 +924,7 @@ func TestResolveShard_PVCDeletionPolicy(t *testing.T) {
 			ShardTemplateCache: make(map[string]*multigresv1alpha1.ShardTemplate),
 		}
 
-		_, _, policy, _, _, _, err := r.ResolveShard(t.Context(), &multigresv1alpha1.ShardConfig{
+		_, _, policy, _, _, _, _, err := r.ResolveShard(t.Context(), &multigresv1alpha1.ShardConfig{
 			ShardTemplate: "tpl-pvc",
 		}, nil, nil)
 		if err != nil {
@@ -936,7 +942,7 @@ func TestResolveShard_PVCDeletionPolicy(t *testing.T) {
 			ShardTemplateCache: make(map[string]*multigresv1alpha1.ShardTemplate),
 		}
 
-		_, pools, _, _, _, _, err := r.ResolveShard(t.Context(), &multigresv1alpha1.ShardConfig{
+		_, pools, _, _, _, _, _, err := r.ResolveShard(t.Context(), &multigresv1alpha1.ShardConfig{
 			Spec: &multigresv1alpha1.ShardInlineSpec{
 				Pools: map[multigresv1alpha1.PoolName]multigresv1alpha1.PoolSpec{
 					"custom-pool": {
@@ -1069,13 +1075,18 @@ func TestResolveShard_InheritedBackup(t *testing.T) {
 			},
 		}
 
-		_, _, _, backupCfg, _, _, err := r.ResolveShard(t.Context(), &multigresv1alpha1.ShardConfig{
-			Spec: &multigresv1alpha1.ShardInlineSpec{
-				Pools: map[multigresv1alpha1.PoolName]multigresv1alpha1.PoolSpec{
-					"default": {Type: "readWrite"},
+		_, _, _, backupCfg, _, _, _, err := r.ResolveShard(
+			t.Context(),
+			&multigresv1alpha1.ShardConfig{
+				Spec: &multigresv1alpha1.ShardInlineSpec{
+					Pools: map[multigresv1alpha1.PoolName]multigresv1alpha1.PoolSpec{
+						"default": {Type: "readWrite"},
+					},
 				},
 			},
-		}, nil, inherited)
+			nil,
+			inherited,
+		)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -1102,19 +1113,24 @@ func TestResolveShard_InheritedBackup(t *testing.T) {
 			},
 		}
 
-		_, _, _, backupCfg, _, _, err := r.ResolveShard(t.Context(), &multigresv1alpha1.ShardConfig{
-			Spec: &multigresv1alpha1.ShardInlineSpec{
-				Pools: map[multigresv1alpha1.PoolName]multigresv1alpha1.PoolSpec{
-					"default": {Type: "readWrite"},
+		_, _, _, backupCfg, _, _, _, err := r.ResolveShard(
+			t.Context(),
+			&multigresv1alpha1.ShardConfig{
+				Spec: &multigresv1alpha1.ShardInlineSpec{
+					Pools: map[multigresv1alpha1.PoolName]multigresv1alpha1.PoolSpec{
+						"default": {Type: "readWrite"},
+					},
+				},
+				Backup: &multigresv1alpha1.BackupConfig{
+					Type: multigresv1alpha1.BackupTypeFilesystem,
+					Filesystem: &multigresv1alpha1.FilesystemBackupConfig{
+						Path: "/shard-override",
+					},
 				},
 			},
-			Backup: &multigresv1alpha1.BackupConfig{
-				Type: multigresv1alpha1.BackupTypeFilesystem,
-				Filesystem: &multigresv1alpha1.FilesystemBackupConfig{
-					Path: "/shard-override",
-				},
-			},
-		}, nil, inherited)
+			nil,
+			inherited,
+		)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -1128,13 +1144,18 @@ func TestResolveShard_InheritedBackup(t *testing.T) {
 		c := fake.NewClientBuilder().WithScheme(scheme).Build()
 		r := NewResolver(c, "default")
 
-		_, _, _, backupCfg, _, _, err := r.ResolveShard(t.Context(), &multigresv1alpha1.ShardConfig{
-			Spec: &multigresv1alpha1.ShardInlineSpec{
-				Pools: map[multigresv1alpha1.PoolName]multigresv1alpha1.PoolSpec{
-					"default": {Type: "readWrite"},
+		_, _, _, backupCfg, _, _, _, err := r.ResolveShard(
+			t.Context(),
+			&multigresv1alpha1.ShardConfig{
+				Spec: &multigresv1alpha1.ShardInlineSpec{
+					Pools: map[multigresv1alpha1.PoolName]multigresv1alpha1.PoolSpec{
+						"default": {Type: "readWrite"},
+					},
 				},
 			},
-		}, nil, nil)
+			nil,
+			nil,
+		)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -1162,7 +1183,7 @@ func TestMergeShardConfig_PostgresConfigRef(t *testing.T) {
 
 	t.Run("template sets postgresConfigRef", func(t *testing.T) {
 		t.Parallel()
-		_, _, _, _, _, ref := mergeShardConfig(
+		_, _, _, _, _, ref, _ := mergeShardConfig(
 			&multigresv1alpha1.ShardTemplate{
 				Spec: multigresv1alpha1.ShardTemplateSpec{
 					PostgresConfigRef: templateRef,
@@ -1177,7 +1198,7 @@ func TestMergeShardConfig_PostgresConfigRef(t *testing.T) {
 
 	t.Run("overrides replace template ref", func(t *testing.T) {
 		t.Parallel()
-		_, _, _, _, _, ref := mergeShardConfig(
+		_, _, _, _, _, ref, _ := mergeShardConfig(
 			&multigresv1alpha1.ShardTemplate{
 				Spec: multigresv1alpha1.ShardTemplateSpec{
 					PostgresConfigRef: templateRef,
@@ -1195,7 +1216,7 @@ func TestMergeShardConfig_PostgresConfigRef(t *testing.T) {
 
 	t.Run("inline replaces template and overrides", func(t *testing.T) {
 		t.Parallel()
-		_, _, _, _, _, ref := mergeShardConfig(
+		_, _, _, _, _, ref, _ := mergeShardConfig(
 			&multigresv1alpha1.ShardTemplate{
 				Spec: multigresv1alpha1.ShardTemplateSpec{
 					PostgresConfigRef: templateRef,
@@ -1216,7 +1237,7 @@ func TestMergeShardConfig_PostgresConfigRef(t *testing.T) {
 
 	t.Run("nil everywhere returns nil", func(t *testing.T) {
 		t.Parallel()
-		_, _, _, _, _, ref := mergeShardConfig(
+		_, _, _, _, _, ref, _ := mergeShardConfig(
 			&multigresv1alpha1.ShardTemplate{},
 			nil, nil, nil, nil,
 		)
@@ -1227,7 +1248,7 @@ func TestMergeShardConfig_PostgresConfigRef(t *testing.T) {
 
 	t.Run("only overrides set ref", func(t *testing.T) {
 		t.Parallel()
-		_, _, _, _, _, ref := mergeShardConfig(
+		_, _, _, _, _, ref, _ := mergeShardConfig(
 			nil,
 			&multigresv1alpha1.ShardOverrides{
 				PostgresConfigRef: overrideRef,
@@ -1241,7 +1262,7 @@ func TestMergeShardConfig_PostgresConfigRef(t *testing.T) {
 
 	t.Run("only inline sets ref", func(t *testing.T) {
 		t.Parallel()
-		_, _, _, _, _, ref := mergeShardConfig(
+		_, _, _, _, _, ref, _ := mergeShardConfig(
 			nil, nil,
 			&multigresv1alpha1.ShardInlineSpec{
 				PostgresConfigRef: inlineRef,
@@ -1255,7 +1276,7 @@ func TestMergeShardConfig_PostgresConfigRef(t *testing.T) {
 
 	t.Run("nil overrides do not clear template ref", func(t *testing.T) {
 		t.Parallel()
-		_, _, _, _, _, ref := mergeShardConfig(
+		_, _, _, _, _, ref, _ := mergeShardConfig(
 			&multigresv1alpha1.ShardTemplate{
 				Spec: multigresv1alpha1.ShardTemplateSpec{
 					PostgresConfigRef: templateRef,

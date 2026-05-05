@@ -19,16 +19,16 @@ func (r *Resolver) ResolveShard(
 	shardSpec *multigresv1alpha1.ShardConfig,
 	allCellNames []multigresv1alpha1.CellName,
 	inheritedBackup *multigresv1alpha1.BackupConfig,
-) (*multigresv1alpha1.MultiOrchSpec, map[multigresv1alpha1.PoolName]multigresv1alpha1.PoolSpec, *multigresv1alpha1.PVCDeletionPolicy, *multigresv1alpha1.BackupConfig, multigresv1alpha1.InitdbArgs, *multigresv1alpha1.PostgresConfigRef, error) {
+) (*multigresv1alpha1.MultiOrchSpec, map[multigresv1alpha1.PoolName]multigresv1alpha1.PoolSpec, *multigresv1alpha1.PVCDeletionPolicy, *multigresv1alpha1.BackupConfig, multigresv1alpha1.InitdbArgs, *multigresv1alpha1.PostgresConfigRef, *multigresv1alpha1.PostgresExtraConfRef, error) {
 	// 1. Fetch Template
 	templateName := shardSpec.ShardTemplate
 	tpl, err := r.ResolveShardTemplate(ctx, templateName)
 	if err != nil {
-		return nil, nil, nil, nil, "", nil, err
+		return nil, nil, nil, nil, "", nil, nil, err
 	}
 
 	// 2. Merge Logic
-	multiOrch, pools, pvcPolicy, backupCfg, initdbArgs, postgresConfigRef := mergeShardConfig(
+	multiOrch, pools, pvcPolicy, backupCfg, initdbArgs, postgresConfigRef, postgresExtraConfRef := mergeShardConfig(
 		tpl,
 		shardSpec.Overrides,
 		shardSpec.Spec,
@@ -80,7 +80,7 @@ func (r *Resolver) ResolveShard(
 		pools[name] = p
 	}
 
-	return &multiOrch, pools, pvcPolicy, backupCfg, initdbArgs, postgresConfigRef, nil
+	return &multiOrch, pools, pvcPolicy, backupCfg, initdbArgs, postgresConfigRef, postgresExtraConfRef, nil
 }
 
 // ResolveShardTemplate fetches and resolves a ShardTemplate by name.
@@ -125,13 +125,14 @@ func mergeShardConfig(
 	inline *multigresv1alpha1.ShardInlineSpec,
 	backupOverride *multigresv1alpha1.BackupConfig,
 	inheritedBackup *multigresv1alpha1.BackupConfig,
-) (multigresv1alpha1.MultiOrchSpec, map[multigresv1alpha1.PoolName]multigresv1alpha1.PoolSpec, *multigresv1alpha1.PVCDeletionPolicy, *multigresv1alpha1.BackupConfig, multigresv1alpha1.InitdbArgs, *multigresv1alpha1.PostgresConfigRef) {
+) (multigresv1alpha1.MultiOrchSpec, map[multigresv1alpha1.PoolName]multigresv1alpha1.PoolSpec, *multigresv1alpha1.PVCDeletionPolicy, *multigresv1alpha1.BackupConfig, multigresv1alpha1.InitdbArgs, *multigresv1alpha1.PostgresConfigRef, *multigresv1alpha1.PostgresExtraConfRef) {
 	// 1. Start with Template (Base)
 	var multiOrch multigresv1alpha1.MultiOrchSpec
 	pools := make(map[multigresv1alpha1.PoolName]multigresv1alpha1.PoolSpec)
 	var pvcPolicy *multigresv1alpha1.PVCDeletionPolicy
 	var initdbArgs multigresv1alpha1.InitdbArgs
 	var postgresConfigRef *multigresv1alpha1.PostgresConfigRef
+	var postgresExtraConfRef *multigresv1alpha1.PostgresExtraConfRef
 	// Start with inherited backup as base
 	var backupCfg *multigresv1alpha1.BackupConfig
 	if inheritedBackup != nil {
@@ -152,6 +153,9 @@ func mergeShardConfig(
 		if template.Spec.PostgresConfigRef != nil {
 			postgresConfigRef = template.Spec.PostgresConfigRef
 		}
+		if template.Spec.PostgresExtraConfRef != nil {
+			postgresExtraConfRef = template.Spec.PostgresExtraConfRef
+		}
 	}
 
 	// 2. Apply Overrides (Explicit Template Modification)
@@ -171,6 +175,9 @@ func mergeShardConfig(
 		}
 		if overrides.PostgresConfigRef != nil {
 			postgresConfigRef = overrides.PostgresConfigRef
+		}
+		if overrides.PostgresExtraConfRef != nil {
+			postgresExtraConfRef = overrides.PostgresExtraConfRef
 		}
 	}
 
@@ -199,6 +206,10 @@ func mergeShardConfig(
 		if inline.PostgresConfigRef != nil {
 			postgresConfigRef = inline.PostgresConfigRef
 		}
+
+		if inline.PostgresExtraConfRef != nil {
+			postgresExtraConfRef = inline.PostgresExtraConfRef
+		}
 	}
 
 	// 4. Apply Backup Override (from ShardConfig.Backup)
@@ -207,7 +218,7 @@ func mergeShardConfig(
 		backupCfg = multigresv1alpha1.MergeBackupConfig(backupOverride, backupCfg)
 	}
 
-	return multiOrch, pools, pvcPolicy, backupCfg, initdbArgs, postgresConfigRef
+	return multiOrch, pools, pvcPolicy, backupCfg, initdbArgs, postgresConfigRef, postgresExtraConfRef
 }
 
 func mergeMultiOrchSpec(

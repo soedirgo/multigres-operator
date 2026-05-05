@@ -2331,6 +2331,26 @@ spec:
                 - key
                 - name
                 type: object
+              postgresExtraConfRef:
+                description: |-
+                  PostgresExtraConfRef references a ConfigMap containing extra postgresql.conf
+                  lines appended after pgctld generates its default config.
+                properties:
+                  key:
+                    description: Key is the key within the ConfigMap's data that contains
+                      the extra conf content.
+                    maxLength: 253
+                    minLength: 1
+                    type: string
+                  name:
+                    description: Name is the name of the ConfigMap.
+                    maxLength: 253
+                    minLength: 1
+                    type: string
+                required:
+                - key
+                - name
+                type: object
               pvcDeletionPolicy:
                 description: PVCDeletionPolicy controls PVC lifecycle management for
                   this shard template.

@@ -64,7 +64,7 @@ func (r *MultigresClusterReconciler) reconcileDatabases(
 
 				// Pass allCellNames to the resolver so it can perform "Empty means Everybody" defaulting.
 				// tgBackup carries the merged chain: TableGroup -> Database -> Cluster.
-				orch, pools, pvcPolicy, finalShardBackup, initdbArgs, postgresConfigRef, err := res.ResolveShard(
+				orch, pools, pvcPolicy, finalShardBackup, initdbArgs, postgresConfigRef, postgresExtraConfRef, err := res.ResolveShard(
 					ctx,
 					shardCfg,
 					allCellNames,
@@ -89,13 +89,14 @@ func (r *MultigresClusterReconciler) reconcileDatabases(
 				// The Resolver now handles the "Empty Cells = All Cells" logic authoritatively.
 				// We no longer need to manually infer or sort here, just trust the resolver.
 				resolvedShards = append(resolvedShards, multigresv1alpha1.ShardResolvedSpec{
-					Name:              string(shard.Name),
-					MultiOrch:         *orch,
-					InitdbArgs:        initdbArgs,
-					PostgresConfigRef: postgresConfigRef,
-					Pools:             pools,
-					PVCDeletionPolicy: pvcPolicy,
-					Backup:            finalShardBackup,
+					Name:                 string(shard.Name),
+					MultiOrch:            *orch,
+					InitdbArgs:           initdbArgs,
+					PostgresConfigRef:    postgresConfigRef,
+					PostgresExtraConfRef: postgresExtraConfRef,
+					Pools:                pools,
+					PVCDeletionPolicy:    pvcPolicy,
+					Backup:               finalShardBackup,
 				})
 			}
 

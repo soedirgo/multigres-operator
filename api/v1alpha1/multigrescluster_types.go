@@ -391,6 +391,11 @@ type ShardOverrides struct {
 	// +optional
 	PostgresConfigRef *PostgresConfigRef `json:"postgresConfigRef,omitempty"`
 
+	// PostgresExtraConfRef references a ConfigMap containing extra postgresql.conf
+	// lines appended after pgctld generates its default config.
+	// +optional
+	PostgresExtraConfRef *PostgresExtraConfRef `json:"postgresExtraConfRef,omitempty"`
+
 	// Pools overrides. Keyed by pool name.
 	// +optional
 	// +kubebuilder:validation:MaxProperties=8
@@ -417,6 +422,11 @@ type ShardInlineSpec struct {
 	// and passes --postgres-config-template to pgctld.
 	// +optional
 	PostgresConfigRef *PostgresConfigRef `json:"postgresConfigRef,omitempty"`
+
+	// PostgresExtraConfRef references a ConfigMap containing extra postgresql.conf
+	// lines appended after pgctld generates its default config.
+	// +optional
+	PostgresExtraConfRef *PostgresExtraConfRef `json:"postgresExtraConfRef,omitempty"`
 
 	// Pools configuration. Keyed by pool name.
 	// +optional

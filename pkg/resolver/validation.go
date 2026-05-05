@@ -386,7 +386,7 @@ func (r *Resolver) ValidateClusterLogic(
 				// ------------------------------------------------------------------
 				// Dry-Run Resolution
 				// We pass allCellNames just like the Reconciler would, to simulate the final state
-				orch, pools, _, backupCfg, _, _, err := r.ResolveShard(
+				orch, pools, _, backupCfg, _, _, _, err := r.ResolveShard(
 					ctx,
 					&shard,
 					cellNames,
@@ -562,7 +562,7 @@ func (r *Resolver) ValidateClusterLogic(
 		for _, tg := range db.TableGroups {
 			tgBackup := multigresv1alpha1.MergeBackupConfig(tg.Backup, dbBackup)
 			for _, shard := range tg.Shards {
-				_, pools, _, backupCfg, _, _, err := r.ResolveShard(
+				_, pools, _, backupCfg, _, _, _, err := r.ResolveShard(
 					ctx,
 					&shard,
 					cellNames,

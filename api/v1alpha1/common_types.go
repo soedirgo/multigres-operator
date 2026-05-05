@@ -277,6 +277,21 @@ type PostgresConfigRef struct {
 	Key string `json:"key"`
 }
 
+// PostgresExtraConfRef references a ConfigMap containing extra postgresql.conf
+// lines appended to pgctld's generated config via POSTGRES_INITDB_EXTRA_CONF.
+// The referenced ConfigMap must exist in the same namespace.
+type PostgresExtraConfRef struct {
+	// Name is the name of the ConfigMap.
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=253
+	Name string `json:"name"`
+
+	// Key is the key within the ConfigMap's data that contains the extra conf content.
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=253
+	Key string `json:"key"`
+}
+
 // IPAddress is a validated IPv4 or IPv6 address string.
 // +kubebuilder:validation:MinLength=3
 // +kubebuilder:validation:MaxLength=45

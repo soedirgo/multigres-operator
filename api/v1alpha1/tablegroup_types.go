@@ -119,6 +119,11 @@ type ShardResolvedSpec struct {
 	// +optional
 	PostgresConfigRef *PostgresConfigRef `json:"postgresConfigRef,omitempty"`
 
+	// PostgresExtraConfRef references a ConfigMap containing extra postgresql.conf
+	// lines appended after pgctld generates its default config.
+	// +optional
+	PostgresExtraConfRef *PostgresExtraConfRef `json:"postgresExtraConfRef,omitempty"`
+
 	// Pools is the map of fully resolved data pool configurations.
 	// +kubebuilder:validation:MaxProperties=8
 	// +kubebuilder:validation:XValidation:rule="self.all(key, size(key) < 63)",message="pool names must be < 63 chars"

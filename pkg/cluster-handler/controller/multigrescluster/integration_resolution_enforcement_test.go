@@ -80,7 +80,7 @@ func TestMultigresCluster_ResolutionLogic(t *testing.T) {
 
 					// Case D: Inline Spec (Highest Priority) (Expect 9)
 					{
-						Name: "zone-d",
+						Name:   "zone-d",
 						ZoneID: "use1-az4",
 						Spec: &multigresv1alpha1.CellInlineSpec{
 							MultiGateway: multigresv1alpha1.StatelessSpec{Replicas: ptr.To(int32(9))},
@@ -198,7 +198,7 @@ func TestMultigresCluster_ResolutionLogic(t *testing.T) {
 				Namespace: testNamespace,
 			},
 			Spec: multigresv1alpha1.CellSpec{
-				Name: "zone-a",
+				Name:   "zone-a",
 				ZoneID: "use1-az1",
 				Images: multigresv1alpha1.CellImages{
 					MultiGateway:    resolver.DefaultMultiGatewayImage,
@@ -419,7 +419,7 @@ func TestMultigresCluster_EnforcementLogic(t *testing.T) {
 			Namespace: testNamespace,
 		},
 		Spec: multigresv1alpha1.CellSpec{
-			Name: "zone-a",
+			Name:   "zone-a",
 			ZoneID: "use1-az1",
 			Images: multigresv1alpha1.CellImages{
 				MultiGateway:    resolver.DefaultMultiGatewayImage,

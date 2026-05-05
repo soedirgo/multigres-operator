@@ -2695,6 +2695,28 @@ spec:
                 - key
                 - name
                 type: object
+              postgresExtraConfRef:
+                description: |-
+                  PostgresExtraConfRef references a ConfigMap containing extra postgresql.conf
+                  lines appended after pgctld generates its default config. Unlike PostgresConfigRef
+                  (which replaces the entire template), this preserves pgctld's defaults and uses
+                  PostgreSQL's last-write-wins to override specific params.
+                properties:
+                  key:
+                    description: Key is the key within the ConfigMap's data that contains
+                      the extra conf content.
+                    maxLength: 253
+                    minLength: 1
+                    type: string
+                  name:
+                    description: Name is the name of the ConfigMap.
+                    maxLength: 253
+                    minLength: 1
+                    type: string
+                required:
+                - key
+                - name
+                type: object
               postgresSuperuser:
                 description: |-
                   PostgresSuperuser is the resolved Postgres superuser name propagated from

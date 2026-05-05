@@ -468,7 +468,7 @@ func TestMultigresCluster_HappyPath(t *testing.T) {
 						OwnerReferences: clusterOwnerRefs(t, clusterName),
 					},
 					Spec: multigresv1alpha1.CellSpec{
-						Name: "zone-a",
+						Name:   "zone-a",
 						ZoneID: "use1-az1",
 						Images: multigresv1alpha1.CellImages{
 							MultiGateway:     "gateway:latest",
@@ -829,7 +829,7 @@ func TestMultigresCluster_HappyPath(t *testing.T) {
 						OwnerReferences: clusterOwnerRefs(t, "minimal-cluster"),
 					},
 					Spec: multigresv1alpha1.CellSpec{
-						Name: "zone-a",
+						Name:   "zone-a",
 						ZoneID: "use1-az1",
 						Images: multigresv1alpha1.CellImages{
 							MultiGateway:    resolver.DefaultMultiGatewayImage,
@@ -1187,7 +1187,7 @@ func TestMultigresCluster_HappyPath(t *testing.T) {
 						OwnerReferences: clusterOwnerRefs(t, "lazy-cluster"),
 					},
 					Spec: multigresv1alpha1.CellSpec{
-						Name: "zone-a",
+						Name:   "zone-a",
 						ZoneID: "use1-az1",
 						Images: multigresv1alpha1.CellImages{
 							MultiGateway:    resolver.DefaultMultiGatewayImage,

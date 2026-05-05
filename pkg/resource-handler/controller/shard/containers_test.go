@@ -740,6 +740,34 @@ func TestBuildPgctldContainer(t *testing.T) {
 		}
 	})
 
+	t.Run("has POSTGRES_INITDB_EXTRA_CONF env when postgresExtraConfRef set", func(t *testing.T) {
+		shard := &multigresv1alpha1.Shard{Spec: multigresv1alpha1.ShardSpec{
+			PostgresExtraConfRef: &multigresv1alpha1.PostgresExtraConfRef{
+				Name: "my-extra-conf",
+				Key:  "extra.conf",
+			},
+		}}
+		c := buildPgctldContainer(shard, multigresv1alpha1.PoolSpec{})
+		assertContainsEnvVar(t, c.Env, "POSTGRES_INITDB_EXTRA_CONF")
+		for _, e := range c.Env {
+			if e.Name == "POSTGRES_INITDB_EXTRA_CONF" {
+				if e.Value != PostgresExtraConfFilePath {
+					t.Errorf(
+						"POSTGRES_INITDB_EXTRA_CONF = %q, want %q",
+						e.Value,
+						PostgresExtraConfFilePath,
+					)
+				}
+			}
+		}
+	})
+
+	t.Run("no POSTGRES_INITDB_EXTRA_CONF env when postgresExtraConfRef nil", func(t *testing.T) {
+		shard := &multigresv1alpha1.Shard{Spec: multigresv1alpha1.ShardSpec{}}
+		c := buildPgctldContainer(shard, multigresv1alpha1.PoolSpec{})
+		assertNotContainsEnvVar(t, c.Env, "POSTGRES_INITDB_EXTRA_CONF")
+	})
+
 	t.Run("has postgres config volume mount when postgresConfigRef set", func(t *testing.T) {
 		shard := &multigresv1alpha1.Shard{Spec: multigresv1alpha1.ShardSpec{
 			PostgresConfigRef: &multigresv1alpha1.PostgresConfigRef{
@@ -773,6 +801,41 @@ func TestBuildPgctldContainer(t *testing.T) {
 				t.Error(
 					"should not have postgres config volume mount when postgresConfigRef is nil",
 				)
+			}
+		}
+	})
+
+	t.Run("has extra conf volume mount when postgresExtraConfRef set", func(t *testing.T) {
+		shard := &multigresv1alpha1.Shard{Spec: multigresv1alpha1.ShardSpec{
+			PostgresExtraConfRef: &multigresv1alpha1.PostgresExtraConfRef{
+				Name: "my-extra-conf",
+				Key:  "extra.conf",
+			},
+		}}
+		c := buildPgctldContainer(shard, multigresv1alpha1.PoolSpec{})
+		assertContainsVolumeMount(t, c.VolumeMounts, PostgresExtraConfVolumeName)
+		for _, m := range c.VolumeMounts {
+			if m.Name == PostgresExtraConfVolumeName {
+				if m.MountPath != PostgresExtraConfMountPath {
+					t.Errorf(
+						"extra conf mount path = %q, want %q",
+						m.MountPath,
+						PostgresExtraConfMountPath,
+					)
+				}
+				if !m.ReadOnly {
+					t.Error("extra conf volume mount should be read-only")
+				}
+			}
+		}
+	})
+
+	t.Run("no extra conf volume mount when postgresExtraConfRef nil", func(t *testing.T) {
+		shard := &multigresv1alpha1.Shard{Spec: multigresv1alpha1.ShardSpec{}}
+		c := buildPgctldContainer(shard, multigresv1alpha1.PoolSpec{})
+		for _, m := range c.VolumeMounts {
+			if m.Name == PostgresExtraConfVolumeName {
+				t.Error("should not have extra conf volume mount when postgresExtraConfRef is nil")
 			}
 		}
 	})
